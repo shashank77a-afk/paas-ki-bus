@@ -1,7 +1,7 @@
 const API = "https://margdarshi.upsrtcvlt.com/php/getGpsLiveData.php";
 // अपने स्टैंड यहाँ जोड़ें: [नाम, latitude, longitude]
 const STANDS = [
-  ["बछरावां बस स्टेशन (अनुमानित)", 26.4667, 81.1167],
+  ["बछरावां ", 26.4667, 81.1167],
   ["लालगंज", 26.167679, 80.973389]
 ];
 const $ = (id) => document.getElementById(id);
@@ -18,26 +18,29 @@ function ls(k, v) {
   try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {}
 }
 
-// समय को बिना UTC में बदले सीधे लोकल (IST) टाइम में दिखाने का पक्का तरीका
+// बिना Date ऑब्जेक्ट के सीधा और सटीक टाइम निकालने का तरीका
 function ageText(t) {
   if (!t) return "";
   
-  // API से आने वाले "YYYY-MM-DD HH:MM:SS" को टुकड़ों में तोड़ना
-  let p = t.split(/[- :]/);
-  
-  if (p.length >= 5) {
-    // इसे सीधे लोकल टाइम के रूप में सेट करना (जिससे Android 5.5 घंटे नहीं जोड़ेगा)
-    // p[1] - 1 इसलिए क्योंकि जावास्क्रिप्ट में महीने 0 से शुरू होते हैं
-    let d = new Date(p[0], p[1] - 1, p[2], p[3], p[4], p[5] || 0);
+  try {
+    let timePart = t.split(" ")[1];
     
-    return d.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  }
+    if (timePart) {
+      let parts = timePart.split(":");
+      let hours = parseInt(parts[0], 10);
+      let minutes = parts[1];
+      
+      let ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 को 12 बजे में बदलना
+      
+      let formattedHour = hours < 10 ? '0' + hours : hours;
+      
+      return formattedHour + ':' + minutes + ' ' + ampm;
+    }
+  } catch(e) {}
   
-  return t; // अगर फॉर्मेट अलग हुआ तो जो आ रहा है वही दिखाएगा 
+  return t; 
 }
 
 const STATUS = { live: "चालू", stationary: "रुकी हुई", no_signal: "सिग्नल नहीं", under_maintenance: "मेंटेनेंस" };
@@ -80,3 +83,56 @@ async function resolveOrigin() {
   } else {
     const s = STANDS[parseInt(v)];
     origin = [s[1], s[2]];
+  }
+}
+
+function render() {
+  const radius = parseFloat($("radius").value);
+  const onlyLive = $("onlyLive").checked;
+  const mine = $("mine").value.split(/[\s,]+/).map((x) => x.toUpperCase()).filter(Boolean);
+  ls("mine", $("mine").value);
+  let rows = allBuses.map((b) => ({ b, d: hav(origin[0], origin[1], b.latitude, b.longitude) }))
+    .filter((x) => x.d <= radius);
+  if (onlyLive) rows = rows.filter((x) => x.b.vehicle_status === "live" || x.b.vehicle_status === "stationary");
+  if (mine.length) rows = rows.filter((x) => mine.includes(x.b.regNum.toUpperCase()));
+  rows.sort((a, b) => a.d - b.d);
+
+  $("status").textContent = rows.length + " बसें मिलीं (" + radius + " km के भीतर)";
+  $("list").innerHTML = rows.slice(0, 200).map(({ b, d }) => `
+    <div class="card ${b.vehicle_status}">
+      <div class="top"><b>${b.regNum}</b><span>${d.toFixed(1)} km</span></div>
+      <div class="sub">${STATUS[b.vehicle_status] || b.vehicle_status || ""} · ${b.speed || 0} km/h · ${ageText(b.receivedTime)}</div>
+      <div class="sub">${b.zone_name || ""}${b.depot_name ? " · डिपो: " + b.depot_name : ""}</div>
+    </div>`).join("");
+
+  if (window.L) {
+    if (!map) {
+      map = L.map("map");
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(map);
+      layer = L.layerGroup().addTo(map);
+    }
+    layer.clearLayers();
+    L.circleMarker(origin, { color: "blue", radius: 9 }).addTo(layer).bindPopup("आप / स्टैंड");
+    rows.slice(0, 200).forEach(({ b, d }) =>
+      L.circleMarker([b.latitude, b.longitude], { color: b.vehicle_status === "live" ? "green" : "gray", radius: 6 })
+        .addTo(layer).bindPopup(b.regNum + "<br>" + d.toFixed(1) + " km"));
+    map.setView(origin, radius <= 3 ? 13 : radius <= 6 ? 12 : radius <= 12 ? 11 : 10);
+  }
+}
+
+async function refresh() {
+  $("btn").disabled = true;
+  try {
+    await resolveOrigin();
+    await loadBuses();
+    render();
+  } catch (e) {
+    $("status").textContent = "गड़बड़ी: " + (e.message || e);
+  }
+  $("btn").disabled = false;
+}
+
+function init() {
+  const sel = $("origin");
+  sel.innerHTML = '<option value="gps">📍 मेरी location</option>' +
+    STAND
