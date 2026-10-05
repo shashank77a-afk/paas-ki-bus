@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch: # यह आपको मैन्युअली बिल्ड ट्रिगर करने का ऑप्शन देगा
 
 jobs:
   build:
@@ -24,8 +22,13 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Install Capacitor Android & Add Platform
+        # यह स्टेप android फोल्डर बनाएगा
+        run: |
+          npm install @capacitor/android
+          npx cap add android
+
       - name: Sync Capacitor
-        # यह स्टेप आपके www फोल्डर को android प्रोजेक्ट में सिंक करेगा
         run: npx cap sync android
 
       - name: Setup Java
