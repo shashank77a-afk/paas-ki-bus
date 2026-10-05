@@ -1,0 +1,8 @@
+{
+  "appId": "com.paaskibus.app",
+  "appName": "Paas Ki Bus",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}
