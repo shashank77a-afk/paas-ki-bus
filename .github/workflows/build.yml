@@ -22,10 +22,11 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Install Capacitor Android & Add Platform
+      - name: Install Capacitor Android, Assets & Add Platform
         run: |
-          npm install @capacitor/android @capacitor/geolocation
+          npm install @capacitor/android @capacitor/geolocation @capacitor/assets
           npx cap add android
+          npx @capacitor/assets generate --android
 
       - name: Add Location Permissions
         run: |
