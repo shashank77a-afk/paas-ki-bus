@@ -1,6 +1,6 @@
 {
   "appId": "com.paaskibus.app",
-  "appName": "Paas Ki Bus",
+  "appName": "Find Bus By Shashank",
   "webDir": "www",
   "plugins": {
     "CapacitorHttp": { "enabled": true }
