@@ -18,10 +18,15 @@ function ls(k, v) {
   try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {}
 }
 
-// समय को "मिनट पहले" की जगह सटीक समय (Exact Time) में बदलने के लिए अपडेट
+// समय को भारतीय समय (IST) में बदलने के लिए अपडेटेड फंक्शन
 function ageText(t) {
-  const d = new Date(t);
-  if (isNaN(d.getTime())) return "";
+  if (!t) return "";
+  
+  let safeT = t.replace(' ', 'T');
+  if (safeT.length === 19) safeT += '+05:30';
+  
+  const d = new Date(safeT);
+  if (isNaN(d.getTime())) return t;
   return d.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
