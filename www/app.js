@@ -2,6 +2,7 @@ const API = "https://margdarshi.upsrtcvlt.com/php/getGpsLiveData.php";
 // अपने स्टैंड यहाँ जोड़ें: [नाम, latitude, longitude]
 const STANDS = [
   ["बछरावां बस स्टेशन (अनुमानित)", 26.4667, 81.1167],
+  ["लालगंज", 26.167679, 80.973389]
 ];
 const $ = (id) => document.getElementById(id);
 let map, layer, allBuses = [], origin = null;
@@ -12,16 +13,22 @@ function hav(a, b, c, d) {
     Math.cos(a * p) * Math.cos(c * p) * Math.sin((d - b) * p / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.sqrt(x));
 }
+
 function ls(k, v) {
   try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {}
 }
+
+// समय को "मिनट पहले" की जगह सटीक समय (Exact Time) में बदलने के लिए अपडेट
 function ageText(t) {
-  const m = Math.round((Date.now() - new Date(t).getTime()) / 60000);
-  if (isNaN(m)) return "";
-  if (m < 60) return m + " मिनट पहले";
-  if (m < 1440) return Math.round(m / 60) + " घंटे पहले";
-  return Math.round(m / 1440) + " दिन पहले";
+  const d = new Date(t);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 }
+
 const STATUS = { live: "चालू", stationary: "रुकी हुई", no_signal: "सिग्नल नहीं", under_maintenance: "मेंटेनेंस" };
 
 async function getGPS() {
@@ -121,8 +128,7 @@ function init() {
   sel.onchange = () => { ls("origin", sel.value); $("custom").style.display = sel.value === "custom" ? "block" : "none"; };
   sel.onchange();
   $("btn").onclick = refresh;
-  ["radius", "onlyLive"].forEach((id) => ($(id).onchange = () => allBuses.length && render()));
-  $("mine").onchange = () => allBuses.length && render();
+  ["radius", "onlyLive"].forEach((id) => ($(id).onchange = () => allBuses.length && render()));$("mine").onchange = () => allBuses.length && render();
   refresh();
 }
 window.addEventListener("load", init);
