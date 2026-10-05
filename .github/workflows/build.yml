@@ -24,8 +24,12 @@ jobs:
 
       - name: Install Capacitor Android & Add Platform
         run: |
-          npm install @capacitor/android
+          npm install @capacitor/android @capacitor/geolocation
           npx cap add android
+
+      - name: Add Location Permissions
+        run: |
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' android/app/src/main/AndroidManifest.xml
 
       - name: Sync Capacitor
         run: npx cap sync android
