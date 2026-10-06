@@ -13,9 +13,12 @@
  button:disabled{opacity:.6}
  .row{display:flex;gap:8px;align-items:center}
  #status{padding:8px 12px;font-size:14px;color:#445}
- #map{height:220px}
+ #map{height:300px}
  .card{background:#fff;margin:8px;padding:10px;border-radius:10px;border-left:5px solid #999}
- .card.live{border-color:#1a9a3a}.card.stationary{border-color:#e0a000}
+ .card.live{border-color:#1a9a3a}.card.stationary{border-color:#d93025}
+ .card{cursor:pointer}.card.sel{box-shadow:0 0 0 2px #0b5cab}
+ .busicon{background:none;border:0}
+ .legend{padding:0 12px 6px;font-size:13px;color:#445}
  .top{display:flex;justify-content:space-between;font-size:17px}
  .sub{font-size:13px;color:#556;margin-top:3px}
 </style></head><body>
@@ -31,6 +34,7 @@
  <button id="btn">🔄 रिफ्रेश</button>
 </div>
 <div id="status"></div>
+<div class="legend">🟢 चल रही &nbsp; 🔴 रुकी हुई &nbsp; (बस पर टैप करें तो नक्शे में दिखेगी)</div>
 <div id="map"></div>
 <div id="list"></div>
 <script src="app.js"></script>
