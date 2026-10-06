@@ -4,6 +4,7 @@ const STANDS = [
   ["बछरावां", 26.4667, 81.1167],
   ["लालगंज", 26.167679, 80.973389]
 ];
+const FRESH_MIN = 10; // इतने मिनट तक का डेटा "नया" माना जाएगा
 const $ = (id) => document.getElementById(id);
 let map, layer, allBuses = [], busByReg = {}, origin = null, originIsGps = true;
 let markers = {}, selected = null, timer = null, busy = false;
@@ -179,7 +180,7 @@ function selectBus(reg, fromMap) {
 // ---------- लिस्ट + नक्शा बनाना ----------
 function depotHue(s) { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
 
-function card(b, d) {
+function card(b, d, r) {
   const reg = b.regNum.toUpperCase();
   const tr = trendOf(b, d);
   const who = originIsGps ? "आपकी" : "स्टैंड की";
@@ -199,7 +200,7 @@ function card(b, d) {
   const nxt = b.next_stop ? `<div class="line">अगला स्टॉप: <b>${esc(b.next_stop)}</b></div>` : "";
   const m = ageMin(b.receivedTime);
   const stale = m != null && m >= 15 && (b.vehicle_status === "live" || b.vehicle_status === "stationary");
-  return `<div class="card ${b.vehicle_status}${selected === reg ? " sel" : ""}" data-reg="${reg}">
+  return `<div class="card ${b.vehicle_status}${r ? " old" : ""}${selected === reg ? " sel" : ""}" data-reg="${reg}">
     <div class="top"><div class="reg">${reg}</div>
       <button class="star" data-fav="${reg}">${favs.includes(reg) ? "★" : "☆"}</button>
       <div class="dist">${d.toFixed(1)} km</div></div>
@@ -234,12 +235,25 @@ function render(keepView) {
   }
   let list = rows.map((b) => ({ b, d: hav(origin[0], origin[1], b.latitude, b.longitude) }));
   if (!q && !favMode && $("onlyComing").checked) list = list.filter(({ b, d }) => { const t = trendOf(b, d); return t && (t.k === "in" || t.k === "near"); });
-  list.sort((a, b) => a.d - b.d);
+  const rankOf = (b) => {
+    if (b.vehicle_status !== "live" && b.vehicle_status !== "stationary") return 2;
+    const m = ageMin(b.receivedTime);
+    return m != null && m <= FRESH_MIN ? 0 : 1;
+  };
+  list.forEach((x) => (x.r = rankOf(x.b)));
+  list.sort((a, b) => a.r - b.r || a.d - b.d); // पहले नया डेटा, फिर पुराना; हर समूह में पास वाली पहले
   const total = list.length;
   list = list.slice(0, 200);
 
   $("status").textContent = total + " बसें मिलीं (" + mode + ")" + (total > 200 ? " — सबसे पास की 200 दिखा रहे हैं" : "");
-  $("list").innerHTML = list.length ? list.map(({ b, d }) => card(b, d)).join("")
+  const mixed = new Set(list.map((x) => x.r)).size > 1;
+  const SEP = ["✅ नया डेटा (" + FRESH_MIN + " मिनट के भीतर)", "⏳ पुराना डेटा", "📵 सिग्नल नहीं / बंद"];
+  let lastR = -1;
+  $("list").innerHTML = list.length ? list.map(({ b, d, r }) => {
+    const head = mixed && r !== lastR ? '<div class="sep">' + SEP[r] + "</div>" : "";
+    lastR = r;
+    return head + card(b, d, r);
+  }).join("")
     : '<div class="empty">कोई बस नहीं मिली। दायरा बढ़ाएँ या फ़िल्टर हटाएँ।</div>';
 
   // पूरे डेटा की ताज़गी
