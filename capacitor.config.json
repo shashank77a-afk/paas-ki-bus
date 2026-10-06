@@ -1,8 +1,0 @@
-{
-  "appId": "com.paaskibus.app",
-  "appName": "UP Bus Radar",
-  "webDir": "www",
-  "plugins": {
-    "CapacitorHttp": { "enabled": true }
-  }
-}
